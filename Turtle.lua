@@ -2,7 +2,8 @@
 
 function new_Turtle(maxX, maxY, maxZ,
         getPosFunc, getDirFunc, forwardFunc, turnLeftFunc, turnRightFunc, downFunc, upFunc,
-        getFuelLevelFunc, refuelFunc, suckDownFunc, dropDownFunc, selectFunc, getItemDetailFunc)
+        getFuelLevelFunc, refuelFunc, suckDownFunc, dropDownFunc, selectFunc, getItemDetailFunc,
+        absX0, absY0, absZ0)
     local self = {}
     self.maxX, self.maxY, self.maxZ = maxX, maxY, maxZ
     self.getPosFunc, self.getDirFunc = getPosFunc, getDirFunc
@@ -12,7 +13,11 @@ function new_Turtle(maxX, maxY, maxZ,
             = getFuelLevelFunc, refuelFunc, suckDownFunc, dropDownFunc, selectFunc
     self.getItemDetailFunc = getItemDetailFunc
     self.direction = self.getDirFunc()
-    self.absX0, self.absY0, self.absZ0 = getPosFunc()
+    if absX0 == nil or absY0 == nil or absZ0 == nil then
+        self.absX0, self.absY0, self.absZ0 = getPosFunc()
+    else
+        self.absX0, self.absY0, self.absZ0 = absX0, absY0, absZ0
+    end
     Turtle_turnToDirection(self, 1)
     return self
 end
@@ -90,12 +95,12 @@ end
 function Turtle_refuelIfNecessary(self)
     if self.getFuelLevelFunc() < 50 * (self.maxX + self.maxY + self.maxZ) then
         local oldX, oldY, oldZ = Turtle_getPosition(self)
-        Turtle_goToCoords(1, 1, 1)
+        Turtle_goToVirtual(self, 1, 1, 1)
         self.selectFunc(1)
         self.suckDownFunc()
         self.refuelFunc()
         Turtle_refuelIfNecessary(self)
-        Turtle_goToCoords(oldX, oldY, oldZ)
+        Turtle_goToVirtual(self, oldX, oldY, oldZ)
     end
 end
 

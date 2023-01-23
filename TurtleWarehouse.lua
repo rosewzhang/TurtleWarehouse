@@ -51,22 +51,28 @@ function TurtleWarehouse_portToVirtualCoords(self, n)
 end
 
 function TurtleWarehouse_writeToFile(self)
-    local f = fs.open(self.fileName, 'w')
-    f.writeLine(tostring(self.turtle.maxX))
-    f.writeLine(tostring(self.turtle.maxY))
-    f.writeLine(tostring(self.turtle.maxZ))
-    f.writeLine('')
+    shell.run('rm', '.turtlewarehousetemp')
+    local tempFile = fs.open('.turtlewarehousetemp', 'w')
+    tempFile.writeLine(tostring(self.turtle.absX0))
+    tempFile.writeLine(tostring(self.turtle.absY0))
+    tempFile.writeLine(tostring(self.turtle.absZ0))
+    tempFile.writeLine(tostring(self.turtle.maxX))
+    tempFile.writeLine(tostring(self.turtle.maxY))
+    tempFile.writeLine(tostring(self.turtle.maxZ))
+    tempFile.writeLine('')
     for itemName, quantity in pairs(self.quantities) do
-        f.writeLine(itemName)
-        f.writeLine(tostring(math.floor(quantity)))
+        tempFile.writeLine(itemName)
+        tempFile.writeLine(tostring(math.floor(quantity)))
         local top = self.tops[itemName]
         while top ~= nil do
-            f.writeLine(top)
+            tempFile.writeLine(top)
             top = self.nextPtr[top]
         end
-        f.writeLine('')
+        tempFile.writeLine('')
     end
-    f.close()
+    tempFile.close()
+    shell.run('rm', self.fileName)
+    shell.run('mv', '.turtlewarehousetemp', self.fileName)
 end
 
 function new_TurtleWarehouse(turtle, fileName)
@@ -82,31 +88,40 @@ function new_TurtleWarehouse(turtle, fileName)
     return self
 end
 
-function new_TurtleWarehouse_CC(fileName, maxX, maxY, maxZ)
-    return new_TurtleWarehouse(new_CCTurtle(maxX, maxY, maxZ), fileName)
+function new_TurtleWarehouse_CC(fileName, maxX, maxY, maxZ, absX0, absY0, absZ0)
+    return new_TurtleWarehouse(new_CCTurtle(maxX, maxY, maxZ, absX0, absY0, absZ0), fileName)
 end
 
 function new_TurtleWarehouse_CCFromFile(fileName)
     local f = fs.open(fileName, 'r')
-    local maxX = tonumber(fs.readLine())
-    local maxY = tonumber(fs.readLine())
-    local maxZ = tonumber(fs.readLine())
-    local self = new_TurtleWarehouse_CC(filename, maxX, maxY, maxZ)
-    fs.readLine()
-    local nextLine = fs.readLine()
-    while nextLine ~= nil do
-        local itemName = fs.readLine()
-        local quantity = fs.readLine()
+    local absX0 = tonumber(f.readLine())
+    local absY0 = tonumber(f.readLine())
+    local absZ0 = tonumber(f.readLine())
+    local maxX = tonumber(f.readLine())
+    local maxY = tonumber(f.readLine())
+    local maxZ = tonumber(f.readLine())
+    local self = new_TurtleWarehouse_CC(fileName, maxX, maxY, maxZ, absX0, absY0, absZ0)
+    f.readLine()
+    local allocatedDict = {}
+    local nextLine = f.readLine()
+    while nextLine ~= nil and nextLine ~= '' do
+        local itemName = nextLine
+        local quantity = tonumber(f.readLine())
         self.quantities[itemName] = quantity
-        self.tops[itemName] = tonumber(fs.readLine())
-        nextLine = fs.readLine()
+        self.tops[itemName] = tonumber(f.readLine())
+        allocatedDict[self.tops[itemName]] = true
+        nextLine = f.readLine()
         local bottom = self.tops[itemName]
         while nextLine ~= '' and nextLine ~= nil do
             self.nextPtr[bottom] = tonumber(nextLine)
             bottom = tonumber(nextLine)
-            nextLine = fs.readLine()
+            allocatedDict[tonumber(nextLine)] = true
+            nextLine = f.readLine()
         end
+        nextLine = f.readLine()
     end
+    f.close()
+    self.allocator = new_Allocator_existing(self.numSlots, allocatedDict)
     return self
 end 
 
@@ -126,7 +141,10 @@ function TurtleWarehouse_depositItemInSlot(self, slot)
         local newItemDetail = self.turtle.getItemDetailFunc()
         local newCount; if newItemDetail == nil then newCount = 0 else newCount = newItemDetail.count end
         self.quantities[name] = self.quantities[name] + (count - newCount)
-        if newCount == 0 then return end
+        if newCount == 0 then
+            TurtleWarehouse_writeToFile(self)
+            return
+        end
         -- count is not zero, so the barrel is full, so we must request a new barrel from the allocator
         local newTop = Allocator_requestAllocation(self.allocator)
         self.nextPtr[newTop] = self.tops[name]
@@ -135,8 +153,6 @@ function TurtleWarehouse_depositItemInSlot(self, slot)
                 addressToVirtualCoords(self.tops[name], self.turtle.maxX, self.turtle.maxY, self.turtle.maxZ))
         self.turtle.dropDownFunc()
         self.quantities[name] = self.quantities[name] + newCount
-        -- TODO: fix this garbage
-        -- TODO: allow more than a barrel of storage per item
     else
         local address = Allocator_requestAllocation(self.allocator)
         self.tops[name] = address
@@ -145,6 +161,7 @@ function TurtleWarehouse_depositItemInSlot(self, slot)
         Turtle_goToVirtual(self.turtle,
                 addressToVirtualCoords(self.tops[name], self.turtle.maxX, self.turtle.maxY, self.turtle.maxZ))
         self.turtle.dropDownFunc()
+        TurtleWarehouse_writeToFile(self)
     end
 end
 
@@ -175,6 +192,7 @@ end
 function TurtleWarehouse_withdraw(self, itemName, quantity, port)
     if self.quantities[itemName] == nil or self.quantities[itemName] < quantity then return false end
     self.quantities[itemName] = self.quantities[itemName] - quantity
+    TurtleWarehouse_writeToFile(self)
     local count = 0
     while true do
         Turtle_goToVirtual(self.turtle, TurtleWarehouse_addressToVirtualCoords(self, self.tops[itemName]))

@@ -25,8 +25,8 @@ function getTurtleDir()
     return getTurtleDirHelper(3)
 end
 
-function new_CCTurtle(maxX, maxY, maxZ)
+function new_CCTurtle(maxX, maxY, maxZ, absX0, absY0, absZ0)
     return new_Turtle(maxX, maxY, maxZ, gps.locate, getTurtleDir, turtle.forward, turtle.turnLeft,
             turtle.turnRight, turtle.down, turtle.up, turtle.getFuelLevel, turtle.refuel, 
-            turtle.suckDown, turtle.dropDown, turtle.select, turtle.getItemDetail) 
+            turtle.suckDown, turtle.dropDown, turtle.select, turtle.getItemDetail, absX0, absY0, absZ0) 
 end

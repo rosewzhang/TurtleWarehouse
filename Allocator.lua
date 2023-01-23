@@ -35,6 +35,43 @@ function new_Allocator(size)
     return object
 end
 
+-- takes unique ownership of allocatedDict
+function new_Allocator_existing(size, allocatedDict)
+    local object = {}
+    object.holes = new_HoleLinkedList()
+    object.allocatedTable = allocatedDict
+
+    local last, first
+    local i = size
+    while true do
+        while allocatedDict[i] and i >= 1 do
+            i = i - 1
+        end
+        if i < 1 then break end
+        last = i
+        -- we found the end of a hole, now find its beninging
+        while not allocatedDict[i] and i >= 1 do
+            i = i - 1
+        end
+        first = i + 1
+        HoleLinkedList_pushFront(object.holes, first, last - first + 1)
+    end
+    return object
+end
+
+--[[
+function Allocator_debugPrintSelf(self)
+    print('allocator: ')
+    print(self.allocatedTable)
+    local nextNode = self.holes.firstHole
+    while nextNode ~= nil do
+        print('address '..tostring(nextNode.address)..', size '..tostring(nextNode.holeSize))
+        nextNode = nextNode.nextPtr
+    end
+    print('')
+end
+--]]
+
 function Allocator_requestAllocation(self)
     if self.holes.firstHole == nil then
         error("no memory to allocate, exiting")
@@ -49,4 +86,3 @@ function Allocator_freeAllocation(self, address)
     HoleLinkedList_pushFront(self.holes, address, 1)
     self.allocatedTable[address] = nil
 end
-

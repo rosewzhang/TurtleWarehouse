@@ -5,6 +5,7 @@ function new_WarehouseRequestHandler(turtleWarehouse, inChannel, outChannel)
     self.turtleWarehouse = turtleWarehouse or error('expected argument for turtleWarehouse')
     self.inChannel = inChannel or error('expected argument for inChannel')
     self.outChannel = outChannel or error('expected argument for outChannel')
+    self.modem = peripheral.find('modem') or error('no modem found')
     return self
 end
 
@@ -14,11 +15,13 @@ end
 -- 
 --  format for a request:
 --      turtle_warehouse w/d/q/l quantity port itemID
+--
 --      w/d/q/l is a single character for withdraw, deposit, query or list
---      quantity is in stacks for deposits and individual items for withdraws. only withdraw and deposit care about quantity
---      quantity and port must have leading zeros to be 4-digit numbers
---      itemID is the id we look for, e.g. minecraft:stone. only withdraw and query care about itemID
---      lie! list cares about itemID, but we use this slot to convey a substring we wish to search
+--
+--      for a withdraw request: w, quantity, port, itemID (quantity is in number of individual items)
+--      for a deposit request: d, quantity, port (quantity is in number of stacks)
+--      for a query request: q, quantity, port, itemID (quantity and port are an identifier of the requester, itemID is a specific item (no substring search))
+--      for a list request: l, quantity, port, itemID (quantity and port are ID of requester, itemID is a substring to search (if blank, list all))
 function WarehouseRequestHandler_run(self)
     modem = peripheral.find('modem')
     modem.open(self.inChannel)
@@ -53,24 +56,19 @@ function WarehouseRequestHandler_processMessage(self, message)
     if quantity > 9999 or quantity < 0 then return end 
     if port > 9999 or port < 0 then return end 
     -- try to extract the itemID
-    print('here4')
     if string.sub(message, 29, 29) ~= ' ' then return end
     itemID = string.sub(message, 30, -1)
 
     -- we have all the information. If we've made it to this stage, then the order is valid, so
     -- let's fulfill it.
-    print('requestType: '.. requestType or 'nil')
-    print('itemID: '.. itemID or 'nil')
-    print('quantity: '.. quantity or 'nil')
-    print('port: '.. port or 'nil')
     if requestType == 'd' then
         WarehouseRequestHandler_fulfillDepositRequest(self, quantity, port)
     elseif requestType == 'w' then
         WarehouseRequestHandler_fulfillWithdrawRequest(self, itemID, quantity, port)
     elseif requestType == 'q' then
-        WarehouseRequestHandler_fulfillQueryRequest(self, itemID)
+        WarehouseRequestHandler_fulfillQueryRequest(self, itemID, quantity, port)
     elseif requestType == 'l' then
-        WarehouseRequestHandler_fulfillListRequest(self, itemID)
+        WarehouseRequestHandler_fulfillListRequest(self, itemID, quantity, port)
     end
 end
 
@@ -79,24 +77,55 @@ function WarehouseRequestHandler_fulfillDepositRequest(self, quantity, port)
 end
 
 function WarehouseRequestHandler_fulfillWithdrawRequest(self, itemid, quantity, port)
-    TurtleWarehouse_deposit(self.turtleWarehouse, itemid, quantity, port)
+    TurtleWarehouse_withdraw(self.turtleWarehouse, itemid, quantity, port)
 end
 
-function WarehouseRequestHandler_fulfillQueryRequest(self, itemid)
-    local count = self.turtleWarehouse.quantities[itemid] or 0
-    local message = 'warehouse_output '..tostring(count)
-    rednet.transmit(outChannel, inChannel, tostring(count))
+function WarehouseRequestHandler_fulfillQueryRequest(self, itemid, quantity, port)
+    local message = 'turtle_warehouse q '..quantity..' '..port..' '..'query requests not yet implemented'
+    self.modem.transmit(self.outChannel, self.inChannel, message)
     print('query requests not yet implemented')
     -- TODO: implement query requests
 end
 
-function WarehouseRequestHandler_fulfillListRequest(self, itemid)
-    print('list requests not yet implemented')
-    -- TODO: implement list requests
-    -- use self.turtleWarehouse.quantities
-    -- send back a message
+-- takes a number x and returns it as a 4 character string with possible leading zeroes
+-- if x is greater than 9999, it returns 9999
+-- if x is not an integer, it is floored
+function toFourDigits(x) 
+    local str = tostring(math.min(math.floor(x), 9999))
+    if string.len(str) == 0 then return '0000'..str end
+    if string.len(str) == 1 then return '000'..str end
+    if string.len(str) == 2 then return '00'..str end
+    if string.len(str) == 3 then return '0'..str end
+    if string.len(str) == 4 then return ''..str end
+    error('honestly i have no idea how this one managed to break')
 end
 
-local turtleWarehouse = new_TurtleWarehouse_CC('temp.txt', 8, 9, 8)
+-- returns true if a is a substring of b
+function isSubstring(a, b)
+    local aLength = string.len(a)
+    local bLength = string.len(b)
+    if bLength < aLength then return false end
+    for i = 1, bLength - aLength + 1 do
+        if a == string.sub(b, i, i + aLength - 1) then
+            return true
+        end
+    end
+    return false
+end
+
+function WarehouseRequestHandler_fulfillListRequest(self, itemid, quantity, port)
+    local message = 'turtle_warehouse l '..toFourDigits(quantity)..' '..toFourDigits(port)..' \n'
+    local itemsDict = self.turtleWarehouse.quantities -- TODO: make this call some substring search function in TurtleWarehouse
+    for k, v in pairs(itemsDict) do
+        if isSubstring(itemid, k) then
+            message = message..'\n'..tostring(v)..'\t'..k
+        end
+    end
+    self.modem.transmit(self.outChannel, self.inChannel, message)
+end
+
+--local turtleWarehouse = new_TurtleWarehouse_CC('warehousedata.txt', 8, 9, 8)
+local turtleWarehouse = new_TurtleWarehouse_CCFromFile('warehousedata.txt')
 handler = new_WarehouseRequestHandler(turtleWarehouse, 1, 2)
 WarehouseRequestHandler_run(handler)
+
