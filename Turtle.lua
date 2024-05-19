@@ -22,6 +22,7 @@ function new_Turtle(maxX, maxY, maxZ,
     return self
 end
 
+-- relative but not virtual
 function Turtle_getPosition(self)
     absX, absY, absZ = self.getPosFunc()
     return absX - self.absX0 + 1, absY - self.absY0 + 1, absZ - self.absZ0 + 1
@@ -45,8 +46,7 @@ function Turtle_turnToDirection(self, direction)
 end
 
 -- level 1 is at y = 1. Level 2 is at y = 3.
-function Turtle_goToVirtual(self, destX, destLevel, destZ)
-    local destY = destLevel * 2 - 1
+function Turtle_goToVirtual(self, destX, destY, destZ)
     local x, y, z = Turtle_getPosition(self)
     if y ~= destY then
         -- go to 1, y, 1
