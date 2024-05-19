@@ -1,6 +1,6 @@
 function main()
-    local turtleWarehouse = new_TurtleWarehouse_CC('warehousedata.txt', 15, 15, 10)
-    --local turtleWarehouse = new_TurtleWarehouse_CCFromFile('warehousedata.txt')
+    -- local turtleWarehouse = new_TurtleWarehouse_CC('warehousedata.txt', 15, 15, 10)
+    local turtleWarehouse = new_TurtleWarehouse_CCFromFile('warehousedata.txt')
     handler = new_WarehouseRequestHandler(turtleWarehouse, 1, 2)
     WarehouseRequestHandler_run(handler)
 end
@@ -40,7 +40,7 @@ function WarehouseRequestHandler_run(self)
         repeat
             event, side, channel, replyChannel, message, distance = os.pullEvent('modem_message')
         until channel == self.inChannel
-        print("message received")
+        print("message received: "..message)
         -- we just got a letter, we just got a letter, we just got a letter
         -- it doesn't matter who it's from. If it's an order, fulfill it
         WarehouseRequestHandler_processMessage(self, message)
