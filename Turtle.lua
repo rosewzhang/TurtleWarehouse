@@ -12,7 +12,7 @@ function new_Turtle(maxX, maxY, maxZ,
     self.getFuelLevelFunc, self.refuelFunc, self.suckDownFunc, self.dropDownFunc, self.selectFunc
             = getFuelLevelFunc, refuelFunc, suckDownFunc, dropDownFunc, selectFunc
     self.getItemDetailFunc = getItemDetailFunc
-    self.direction = self.getDirFunc()
+    self.direction = self.getDirFunc() or error("couldn't get turtle direction")
     if absX0 == nil or absY0 == nil or absZ0 == nil then
         self.absX0, self.absY0, self.absZ0 = getPosFunc()
     else
@@ -99,8 +99,15 @@ function Turtle_refuelIfNecessary(self)
         self.selectFunc(1)
         self.suckDownFunc()
         self.refuelFunc()
-        Turtle_refuelIfNecessary(self)
+        Turtle_refuelIfNecessaryHelper(self)
         Turtle_goToVirtual(self, oldX, oldY, oldZ)
     end
 end
 
+function Turtle_refuelIfNecessaryHelper(self)
+    if self.getFuelLevelFunc() > 100 * (self.maxX + self.maxY + self.maxZ) then return end
+    self.selectFunc(1)
+    self.suckDownFunc()
+    self.refuelFunc()
+    Turtle_refuelIfNecessaryHelper(self)
+end

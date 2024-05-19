@@ -17,11 +17,11 @@ function getTurtleDirHelper(maxTurns)
     elseif dx == -1 then return 3
     elseif dz == 1 then return 4
     elseif dz == -1 then return 2
+    else error("direction is not possible! dx, dz = "..tostring(dx)..", "..tostring(dz))
     end
 end
 
 function getTurtleDir()
-    print('getting direction')
     return getTurtleDirHelper(3)
 end
 
