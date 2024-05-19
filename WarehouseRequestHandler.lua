@@ -48,6 +48,7 @@ function WarehouseRequestHandler_run(self)
 end
 
 function WarehouseRequestHandler_processMessage(self, message)
+    if not message then return end
     if string.sub(message, 1, 17) ~= 'turtle_warehouse ' then return end
     -- possibly a valid request, set up to extract the data
     local requestType, itemID, quantity, port
