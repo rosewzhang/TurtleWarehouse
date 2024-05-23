@@ -35,12 +35,12 @@ function WarehouseRequestHandler_run(self)
     modem.open(self.outChannel)
     while true do
         -- wait for a message
-        print("waiting for a message...")
+        print('waiting for a message...')
         local event, side, channel, replyChannel, message, distance
         repeat
             event, side, channel, replyChannel, message, distance = os.pullEvent('modem_message')
         until channel == self.inChannel
-        print("message received: "..message)
+        print('message received: '..message or '')
         -- we just got a letter, we just got a letter, we just got a letter
         -- it doesn't matter who it's from. If it's an order, fulfill it
         WarehouseRequestHandler_processMessage(self, message)
@@ -125,10 +125,10 @@ end
 
 function WarehouseRequestHandler_fulfillListRequest(self, itemid, quantity, port)
     local message = 'turtle_warehouse l '..toFourDigits(quantity)..' '..toFourDigits(port)..' \n'
-    local itemsDict = self.turtleWarehouse.quantities -- TODO: make this call some substring search function in TurtleWarehouse
+    local itemsDict = self.turtleWarehouse.quantities 
     for k, v in pairs(itemsDict) do
         if isSubstring(itemid, k) then
-            message = message..'\n'..tostring(v)..'\t'..k
+            message = message..'\n'..tostring(v)..' '..k
         end
     end
     self.modem.transmit(self.outChannel, self.inChannel, message)
