@@ -35,6 +35,9 @@ function main()
             elseif keys.getName(key) == 'minus' then
                 commandBuffer = commandBuffer .. '_'
                 updateQuery()
+            elseif keys.getName(key) == 'period' then
+                commandBuffer = commandBuffer .. '.'
+                updateQuery()
             elseif string.match (keys.getName(key), '^[a-z]$') or isDigit(keys.getName(key)) then
                 commandBuffer = commandBuffer .. keys.getName(key)
             end
@@ -53,6 +56,8 @@ function main()
                 updateQuery()
             elseif keys.getName(key) == 'minus' then
                 searchQuery = searchQuery .. '_'
+            elseif keys.getName(key) == 'period' then
+                searchQuery = searchQuery .. '.'
             elseif isDigit(keys.getName(key)) then
                 searchQuery = searchQuery .. digits[keys.getName(key)]
                 updateQuery()
@@ -108,6 +113,39 @@ function clearCommand()
     commandBuffer = ''
 end
 
+function constructWithdrawMessage(quantity, name, port)
+    if not name or name == '.' then name = searchQuery end
+    if not port or port == '.' then port = WAREHOUSE_OUT_PORT end
+    -- substring search in itemList
+    local candidates = {}
+    local i = 1
+    firstLine = true
+    for line in toLines(itemList) do
+        if i > 2 then 
+            if isSubstring(name, line) then
+                candidates[#candidates + 1] = line
+            end
+        else 
+            firstLine = false
+        end
+        i = i + 1
+    end
+    -- pick the shortest candidate
+    if #candidates == 0 then return end
+    shortest_candidate = candidates[1]
+    for i, candidate in pairs(candidates) do
+        if string.len(candidate) < string.len(shortest_candidate) then 
+            shortest_candidate = candidate
+        end
+    end
+    words = {}
+    for word in toWords(shortest_candidate) do
+        words[#words + 1] = word
+    end
+    if not words[2] then return end
+    return 'turtle_warehouse w '..toFourDigits(quantity)..' '..toFourDigits(port)..' '..words[2]
+end
+
 function sendCommand() 
     words = {}
     for word in toWords(commandBuffer) do
@@ -119,8 +157,8 @@ function sendCommand()
         updateQuery()
         drawWindow()
     elseif words[1] == 'w' then
-        local outMessage = 'turtle_warehouse w '..toFourDigits(words[2])..' '..toFourDigits(words[4] or WAREHOUSE_OUT_PORT)..' '..words[3]
-        modem.transmit(1, 2, outMessage)
+        local outMessage = constructWithdrawMessage(words[2], words[3], words[4])
+        if outMessage then modem.transmit(1, 2, outMessage) end
     elseif words[1] == 'd' then
         quantity = tonumber(words[2])
         local outMessage = 'turtle_warehouse d '..toFourDigits(words[2] or 27)..' '..toFourDigits(words[3] or WAREHOUSE_IN_PORT)..' '
