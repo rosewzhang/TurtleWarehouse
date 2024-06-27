@@ -9,10 +9,14 @@ function main()
     inCommandMode = false
     searchQuery = ''
     commandBuffer = ''
+    print('HERE0')
     itemList = getItemList()
+    print('HERE1')
     searchResults = {}
 
+    print('HERE2')
     updateQuery()
+    print('HERE3')
     drawWindow()
     while true do
         local event, key, isHeld = os.pullEvent('key')
@@ -113,7 +117,7 @@ function clearCommand()
     commandBuffer = ''
 end
 
-function constructWithdrawMessage(quantity, name, port)
+function constructWithdrawMessage(requestID, quantity, name, port)
     if not name or name == '.' then name = searchQuery end
     if not port or port == '.' then port = WAREHOUSE_OUT_PORT end
     -- substring search in itemList
@@ -143,7 +147,11 @@ function constructWithdrawMessage(quantity, name, port)
         words[#words + 1] = word
     end
     if not words[2] then return end
-    return 'turtle_warehouse w '..toFourDigits(quantity)..' '..toFourDigits(port)..' '..words[2]
+    return 'turtle_warehouse w '..requestID..' '..toFourDigits(quantity)..' '..toFourDigits(port)..' '..words[2]
+end
+
+function generateRequestID()
+    return tostring(math.random(10000000, 99999999))
 end
 
 function sendCommand() 
@@ -157,11 +165,13 @@ function sendCommand()
         updateQuery()
         drawWindow()
     elseif words[1] == 'w' then
-        local outMessage = constructWithdrawMessage(words[2], words[3], words[4])
+        local requestID = generateRequestID()
+        local outMessage = constructWithdrawMessage(requestID, words[2], words[3], words[4])
         if outMessage then modem.transmit(1, 2, outMessage) end
     elseif words[1] == 'd' then
         quantity = tonumber(words[2])
-        local outMessage = 'turtle_warehouse d '..toFourDigits(words[2] or 27)..' '..toFourDigits(words[3] or WAREHOUSE_IN_PORT)..' '
+        local requestID = generateRequestID()
+        local outMessage = 'turtle_warehouse d '..requestID..' '..toFourDigits(words[2] or 27)..' '..toFourDigits(words[3] or WAREHOUSE_IN_PORT)..' '
         modem.transmit(1, 2, outMessage)
     end
 
@@ -190,15 +200,16 @@ function updateQuery()
 end
 
 function getItemList()
-    local outMessage = 'turtle_warehouse l 0000 0000 '
+    local requestID = generateRequestID()
+    local outMessage = 'turtle_warehouse '..requestID..' l 0000 0000 '
 
     modem.transmit(1, 2, outMessage)
-    local type = string.sub(outMessage, 18, 18)
+    local type = string.sub(outMessage, 27, 27)
     if type == 'q' or type == 'l' then
         repeat
             event, side, channel, replyChannel, message, distance = os.pullEvent('modem_message')
-        until channel == 2
-        print('message: '..message)
+        until channel == 2 and message.sub(18, 25) == requestID
+        print('itemlist message: '..message)
     end
     return message
 end
