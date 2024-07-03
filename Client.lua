@@ -147,7 +147,7 @@ function constructWithdrawMessage(requestID, quantity, name, port)
         words[#words + 1] = word
     end
     if not words[2] then return end
-    return 'turtle_warehouse w '..requestID..' '..toFourDigits(quantity)..' '..toFourDigits(port)..' '..words[2]
+    return 'turtle_warehouse '..requestID..' w '..toFourDigits(quantity)..' '..toFourDigits(port)..' '..words[2]
 end
 
 function generateRequestID()
@@ -171,7 +171,7 @@ function sendCommand()
     elseif words[1] == 'd' then
         quantity = tonumber(words[2])
         local requestID = generateRequestID()
-        local outMessage = 'turtle_warehouse d '..requestID..' '..toFourDigits(words[2] or 27)..' '..toFourDigits(words[3] or WAREHOUSE_IN_PORT)..' '
+        local outMessage = 'turtle_warehouse '..requestID..' d '..toFourDigits(words[2] or 27)..' '..toFourDigits(words[3] or WAREHOUSE_IN_PORT)..' '
         modem.transmit(1, 2, outMessage)
     end
 
@@ -203,15 +203,14 @@ function getItemList()
     local requestID = generateRequestID()
     local outMessage = 'turtle_warehouse '..requestID..' l 0000 0000 '
 
+    print('HERE3: '..outMessage)
+
     modem.transmit(1, 2, outMessage)
-    local type = string.sub(outMessage, 27, 27)
-    if type == 'q' or type == 'l' then
-        repeat
-            event, side, channel, replyChannel, message, distance = os.pullEvent('modem_message')
-            print('HERE1: '..message)
-        until channel == 2 and string.sub(message, 20, 27) == requestID
-        print('itemlist message: '..message)
-    end
+    repeat
+        event, side, channel, replyChannel, message, distance = os.pullEvent('modem_message')
+        print('HERE1: '..message)
+    until channel == 2 and string.sub(message, 18, 25) == requestID
+    print('itemlist message: '..message)
     return message
 end
 
