@@ -49,17 +49,20 @@ function BufferedWarehouseRequestHandler_processAll(self)
     self.doneProcessing = true
 end
 
--- TODO: handle query requests instantly bc they fast
 -- add one thing to the buffer
 function BufferedWarehouseRequestHandler_receive(self)
     -- wait for a message
-    print('(b) waiting for a message...')
     local event, side, channel, replyChannel, message, distance
     repeat
         event, side, channel, replyChannel, message, distance = os.pullEvent('modem_message')
     until channel == self.inChannel
-    print('(b) message received: '..message or '')
-    BufferedWarehouseRequestHandler_addToBuffer(self, message)
+    requestType = string.sub(message, 27, 27)
+    -- handle list requests instantly bc they fast, everything else goes in the buffer
+    if requestType == 'l' then
+        WarehouseRequestHandler_processMessage(self, message)
+    else
+        BufferedWarehouseRequestHandler_addToBuffer(self, message)
+    end
 end
 
 -- to be run while processAll is running

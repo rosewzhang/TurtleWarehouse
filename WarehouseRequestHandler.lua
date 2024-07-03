@@ -52,6 +52,7 @@ end
 
 -- TODO: try to make this error in bugtesting
 function WarehouseRequestHandler_processMessage(self, message)
+    print('DEBUG0: '..message)
     if not message then return end
     if string.sub(message, 1, 17) ~= 'turtle_warehouse ' then return end
     -- possibly a valid request, set up to extract the data
@@ -75,6 +76,8 @@ function WarehouseRequestHandler_processMessage(self, message)
     -- try to extract the itemID
     if string.sub(message, 38, 38) ~= ' ' then return end
     itemID = string.sub(message, 39, -1)
+
+    print('DEBUG: the following message is valid and will be fulfilled: '..message)
 
     -- we have all the information. If we've made it to this stage, then the order is valid, so
     -- let's fulfill it.
