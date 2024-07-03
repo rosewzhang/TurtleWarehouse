@@ -208,7 +208,8 @@ function getItemList()
     if type == 'q' or type == 'l' then
         repeat
             event, side, channel, replyChannel, message, distance = os.pullEvent('modem_message')
-        until channel == 2 and message.sub(18, 25) == requestID
+            print('HERE1: '..message)
+        until channel == 2 and string.sub(message, 20, 27) == requestID
         print('itemlist message: '..message)
     end
     return message
