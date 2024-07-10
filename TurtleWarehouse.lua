@@ -166,11 +166,14 @@ function TurtleWarehouse_depositItemInSlot(self, slot)
 end
 
 function TurtleWarehouse_deposit(self, port, numStacks)
-    Turtle_refuelIfNecessary(self.turtle)
     -- outer loop loops over once every trip
     while numStacks > 0 do
+        print('HERE0')
+        Turtle_refuelIfNecessary(self.turtle)
+        print('HERE1')
         Turtle_goToVirtual(self.turtle, portToVirtualCoords(port, self.turtle.maxX, self.turtle.maxY,
                 self.turtle.maxZ))
+        print('HERE2')
         local stacksThisTrip
         if numStacks > 16 then 
             stacksThisTrip = 16
@@ -179,11 +182,43 @@ function TurtleWarehouse_deposit(self, port, numStacks)
             stacksThisTrip = numStacks
             numStacks = 0
         end
+        -- optimization: sort all stacks by destination (top) before depositing them all
+        -- bubble sort cuz its n=16 and who cares
+        slotTops = {}
         self.turtle.selectFunc(1)
-        for i = 1, stacksThisTrip do self.turtle.suckDownFunc() end
         for i = 1, stacksThisTrip do
-            if self.turtle.getItemDetailFunc(i) == nil then return end
-            TurtleWarehouse_depositItemInSlot(self, i)
+            self.turtle.selectFunc(i)
+            self.turtle.suckDownFunc()
+            local itemDetail = self.turtle.getItemDetailFunc()
+            if itemDetail == nil then 
+                stacksThisTrip = i - 1
+                numStacks = 0
+                break
+            else
+                slotTops[i] = self.tops[itemDetail.name]
+            end
+        end
+        order = {}
+        for i = 1, stacksThisTrip do
+            -- order[i] is to be visited i'th
+            order[i] = i
+        end
+        for i = 1, stacksThisTrip do
+            for j = 1, stacksThisTrip-1 do
+                -- compare j with j-1 and swap if needed
+                local jValue = slotTops[order[j]]
+                local jPlusOneValue = slotTops[order[j+1]]
+                if jValue > jPlusOneValue then
+                    local temp = order[j]
+                    order[j] = order[j+1]
+                    order[j+1] = temp
+                end
+            end
+        end
+        for i = 1, stacksThisTrip do
+            -- print('DEBUG: depositing item in slot' .. order[i])
+            if self.turtle.getItemDetailFunc(order[i]) == nil then return end
+            TurtleWarehouse_depositItemInSlot(self, order[i])
         end
     end
 end
