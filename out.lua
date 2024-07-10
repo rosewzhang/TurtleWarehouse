@@ -1,9 +1,3 @@
-function main()
-    -- local turtleWarehouse = new_TurtleWarehouse_CC('warehousedata.txt', 15, 15, 10)
-    local turtleWarehouse = new_TurtleWarehouse_CCFromFile('warehousedata.txt')
-    handler = new_WarehouseRequestHandler(turtleWarehouse, 1, 2)
-    WarehouseRequestHandler_run(handler)
-end
 
 -- direction: unit circle but quarter turns instead of radians but 0 is 4
 
@@ -477,6 +471,15 @@ TurtleWarehouse_deposit(turtleWarehouse, 2, 5)
 
 
 
+--[[ 
+function main()
+    -- local turtleWarehouse = new_TurtleWarehouse_CC('warehousedata.txt', 15, 15, 10)
+    local turtleWarehouse = new_TurtleWarehouse_CCFromFile('warehousedata.txt')
+    handler = new_WarehouseRequestHandler(turtleWarehouse, 1, 2)
+    WarehouseRequestHandler_run(handler)
+end
+--]]
+
 
 function new_WarehouseRequestHandler(turtleWarehouse, inChannel, outChannel)
     self = {}
@@ -506,12 +509,12 @@ function WarehouseRequestHandler_run(self)
     modem.open(self.outChannel)
     while true do
         -- wait for a message
-        print("waiting for a message...")
+        print('waiting for a message...')
         local event, side, channel, replyChannel, message, distance
         repeat
             event, side, channel, replyChannel, message, distance = os.pullEvent('modem_message')
         until channel == self.inChannel
-        print("message received: "..message)
+        print('message received: '..message or '')
         -- we just got a letter, we just got a letter, we just got a letter
         -- it doesn't matter who it's from. If it's an order, fulfill it
         WarehouseRequestHandler_processMessage(self, message)
@@ -596,13 +599,96 @@ end
 
 function WarehouseRequestHandler_fulfillListRequest(self, itemid, quantity, port)
     local message = 'turtle_warehouse l '..toFourDigits(quantity)..' '..toFourDigits(port)..' \n'
-    local itemsDict = self.turtleWarehouse.quantities -- TODO: make this call some substring search function in TurtleWarehouse
+    local itemsDict = self.turtleWarehouse.quantities 
     for k, v in pairs(itemsDict) do
         if isSubstring(itemid, k) then
-            message = message..'\n'..tostring(v)..'\t'..k
+            message = message..'\n'..tostring(v)..' '..k
         end
     end
     self.modem.transmit(self.outChannel, self.inChannel, message)
+end
+
+main()
+
+
+
+
+function new_BufferedWarehouseRequestHandler(turtleWarehouse, inChannel, outChannel, bufferCapacity)
+    self = new_WarehouseRequestHandler(turtleWarehouse, inChannel, outChannel) -- super()
+    -- circular buffer
+    self.bufferCapacity = bufferCapacity
+    self.bufferSize = 0
+    self.bufferStart = 1
+    self.bufferEnd = bufferCapacity
+    self.buffer = {}
+    self.doneProcessing = false
+    return self
+end
+
+function main()
+    -- local turtleWarehouse = new_TurtleWarehouse_CC('warehousedata.txt', 15, 15, 10)
+    local turtleWarehouse = new_TurtleWarehouse_CCFromFile('warehousedata.txt')
+    handler = new_BufferedWarehouseRequestHandler(turtleWarehouse, 1, 2, 10)
+    BufferedWarehouseRequestHandler_run(handler)
+end
+
+function BufferedWarehouseRequestHandler_addToBuffer(self, item)
+    if self.bufferSize >= self.bufferCapacity then return nil end
+    self.bufferEnd = self.bufferEnd % self.bufferCapacity + 1 -- update end
+    self.buffer[self.bufferEnd] = item 
+    self.bufferSize = self.bufferSize + 1
+
+end
+
+function BufferedWarehouseRequestHandler_removeFromBuffer(self)
+    if self.bufferSize <= 0 then return nil end
+    local item = self.buffer[self.bufferStart]
+    self.buffer[self.bufferStart] = nil
+    self.bufferStart = self.bufferStart % self.bufferCapacity + 1 -- update start
+    self.bufferSize = self.bufferSize - 1
+    return item 
+end
+
+function BufferedWarehouseRequestHandler_processAll(self) 
+    while self.bufferSize > 0 do
+        local nextItem = BufferedWarehouseRequestHandler_removeFromBuffer(self)
+        -- we just got a letter, we just got a letter, we just got a letter
+        -- it doesn't matter who it's from. If it's an order, fulfill it
+        BufferedWarehouseRequestHandler_processMessage(self, message)
+        print('responded to: '..nextItem)
+
+    end
+    self.doneProcessing = true
+end
+
+-- TODO: handle query requests instantly bc they fast
+-- add one thing to the buffer
+function BufferedWarehouseRequestHandler_receive(self)
+    -- wait for a message
+    print('waiting for a message...')
+    local event, side, channel, replyChannel, message, distance
+    repeat
+        event, side, channel, replyChannel, message, distance = os.pullEvent('modem_message')
+    until channel == self.inChannel
+    print('message received: '..message or '')
+    BufferedWarehouseRequestHandler_addToBuffer(self, message)
+end
+
+-- to be run while processAll is running
+function BufferedWarehouseRequestHandler_receiveUntilDoneProcessing(self)
+    while not self.doneProcessing do
+        BufferedWarehouseRequestHandler_receive(self)
+    end
+end
+
+function BufferedWarehouseRequestHandler_run(self)
+    while true do
+        if self.bufferSize <= 0 then BufferedWarehouseRequestHandler_receive(self) end
+        -- buffer has 1
+        self.doneProcessing = false
+        parallel.waitForAll(function() BufferedWarehouseRequestHandler_processAll(self) end, 
+                            function() BufferedWarehouseRequestHandler_receiveUntilDoneProcessing(self) end)
+    end
 end
 
 main()
