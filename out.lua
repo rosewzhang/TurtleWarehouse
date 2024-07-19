@@ -431,6 +431,9 @@ function TurtleWarehouse_deposit(self, port, numStacks)
         -- bubble sort cuz its n=16 and who cares
         slotTops = {}
         self.turtle.selectFunc(1)
+        -- a reasonable upper bound, nonexistent items should always be treated as if they'll be allocated
+        -- at a very high numbered barrel
+        local biggest = self.turtle.maxX * self.turtle.maxY * self.turtle.maxZ
         for i = 1, stacksThisTrip do
             self.turtle.selectFunc(i)
             self.turtle.suckDownFunc()
@@ -440,7 +443,7 @@ function TurtleWarehouse_deposit(self, port, numStacks)
                 numStacks = 0
                 break
             else
-                slotTops[i] = self.tops[itemDetail.name]
+                slotTops[i] = self.tops[itemDetail.name] or biggest
             end
         end
         order = {}
