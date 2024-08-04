@@ -186,7 +186,7 @@ function TurtleWarehouse_deposit(self, port, numStacks)
         -- bubble sort cuz its n=16 and who cares
         slotTops = {}
         self.turtle.selectFunc(1)
-        -- a reasonable upper bound, nonexistent items should always be treated as if they'll be allocated
+        -- a reasonable upper bound: nonexistent items should always be treated as if they'll be allocated
         -- at a very high numbered barrel
         local biggest = self.turtle.maxX * self.turtle.maxY * self.turtle.maxZ
         for i = 1, stacksThisTrip do
