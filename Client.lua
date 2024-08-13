@@ -28,20 +28,18 @@ function main()
             elseif keys.getName(key) == 'enter' then
                 sendCommand()
             elseif keys.getName(key) == 'backspace' then
-                clearCommand()
+                commandBuffer = string.sub(commandBuffer, (#commandBuffer - 1))
+                updateQuery()
             elseif keys.getName(key) == 'space' then
                 commandBuffer = commandBuffer .. ' '
             elseif isDigit(keys.getName(key)) then
                 commandBuffer = commandBuffer .. digits[keys.getName(key)]
-                updateQuery()
             elseif keys.getName(key) == 'semicolon' then
                 commandBuffer = commandBuffer .. ':'
             elseif keys.getName(key) == 'minus' then
                 commandBuffer = commandBuffer .. '_'
-                updateQuery()
             elseif keys.getName(key) == 'period' then
                 commandBuffer = commandBuffer .. '.'
-                updateQuery()
             elseif string.match (keys.getName(key), '^[a-z]$') or isDigit(keys.getName(key)) then
                 commandBuffer = commandBuffer .. keys.getName(key)
             end
@@ -50,7 +48,7 @@ function main()
             if keys.getName(key) == 'tab' then
                 inCommandMode = true
             elseif keys.getName(key) == 'backspace' then
-                clearSearchQuery()
+                searchQuery = string.sub(searchQuery, (#searchQuery - 1))
                 updateQuery()
             elseif keys.getName(key) == 'space' then
                 searchQuery = searchQuery.. ' '
@@ -111,10 +109,6 @@ function drawWindow()
     myWindow.setCursorPos(1, 4) myWindow.write('+-------------------------------------------------+')
     myWindow.setCursorPos(1, 16) myWindow.write('+-------------------------------------------------+')
     myWindow.setCursorPos(1, 19) myWindow.write('+-------------------------------------------------+')
-end
-
-function clearCommand() 
-    commandBuffer = ''
 end
 
 function constructWithdrawMessage(requestID, quantity, name, port)
