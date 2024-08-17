@@ -28,7 +28,7 @@ function main()
             elseif keys.getName(key) == 'enter' then
                 sendCommand()
             elseif keys.getName(key) == 'backspace' then
-                commandBuffer = string.sub(commandBuffer, (#commandBuffer - 1))
+                commandBuffer = string.sub(commandBuffer, 1, (#commandBuffer - 1))
                 updateQuery()
             elseif keys.getName(key) == 'space' then
                 commandBuffer = commandBuffer .. ' '
@@ -48,7 +48,7 @@ function main()
             if keys.getName(key) == 'tab' then
                 inCommandMode = true
             elseif keys.getName(key) == 'backspace' then
-                searchQuery = string.sub(searchQuery, (#searchQuery - 1))
+                searchQuery = string.sub(searchQuery, 1, (#searchQuery - 1))
                 updateQuery()
             elseif keys.getName(key) == 'space' then
                 searchQuery = searchQuery.. ' '
