@@ -242,8 +242,10 @@ function TurtleWarehouse_withdraw(self, itemName, quantity, port)
                 -- if things start breaking, maybe check here to confirm available inventory slots
                 -- otherwise, there would be an erroneous detection of an empty chest
                 self.tops[itemName] = self.nextPtr[self.tops[itemName]]
+                TurtleWarehouse_writeToFile(self) -- immediately write this change or else shit gets baaaad
                 Turtle_goToVirtual(self.turtle,
                         addressToVirtualCoords(self.tops[itemName], self.turtle.maxX, self.turtle.maxY, self.turtle.maxZ))
+                self.turtle.suckDownFunc()
             end
             count = count + self.turtle.getItemDetailFunc().count
             if count >= quantity then 
