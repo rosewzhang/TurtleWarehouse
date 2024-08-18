@@ -52,39 +52,29 @@ end
 
 -- TODO: try to make this error in bugtesting
 function WarehouseRequestHandler_processMessage(self, message)
-    print('HERE00')
     if not message then return end
-    print('HERE10')
     if string.sub(message, 1, 17) ~= 'turtle_warehouse ' then return end
-    print('HERE20')
     -- possibly a valid request, set up to extract the data
     local requestID, requestType, itemID, quantity, port
     -- try to extract request id
     requestID = string.sub(message, 18, 25)
     if string.sub(message, 26, 26) ~= ' ' then return end
-    print('HERE30')
     -- try to extract the type
     requestType = string.sub(message, 27, 27)
     if requestType ~= 'w' and requestType ~= 'd' and requestType ~= 'q' and requestType ~= 'l' then return end
     -- now try to extract the quantity
     if string.sub(message, 28, 28) ~= ' ' then return end
-    print('HERE40')
     -- try to extract the type
     quantity = tonumber(string.sub(message, 30, 33))
     if quantity == nil then return end
     if string.sub(message, 33, 33) ~= ' ' then return end
-    print('HERE50')
     -- now try to extract the port
     port = tonumber(string.sub(message, 34, 37))
     if port == nil then return end
-    print('HERE60')
     if quantity > 9999 or quantity < 0 then return end 
-    print('HERE70')
     if port > 9999 or port < 0 then return end 
-    print('HERE80')
     -- try to extract the itemID
     if string.sub(message, 38, 38) ~= ' ' then return end
-    print('HERE90')
     itemID = string.sub(message, 39, -1)
 
     -- we have all the information. If we've made it to this stage, then the order is valid, so
@@ -105,11 +95,6 @@ function WarehouseRequestHandler_fulfillDepositRequest(self, requestID, quantity
 end
 
 function WarehouseRequestHandler_fulfillWithdrawRequest(self, requestID, itemid, quantity, port)
-    print('HERE100')
-    print(requestID)
-    print(itemid)
-    print(quantity)
-    print(port)
     TurtleWarehouse_withdraw(self.turtleWarehouse, itemid, quantity, port)
 end
 
