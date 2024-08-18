@@ -50,6 +50,9 @@ function main()
             elseif keys.getName(key) == 'backspace' then
                 searchQuery = string.sub(searchQuery, 1, (#searchQuery - 1))
                 updateQuery()
+            elseif keys.getName(key) == 'enter' then
+                clearSearchQuery()
+                updateQuery()
             elseif keys.getName(key) == 'space' then
                 searchQuery = searchQuery.. ' '
                 updateQuery()
